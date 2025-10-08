@@ -10,6 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Add the Xposed repository to resolve the API dependency
+        maven { url 'https://api.xposed.info/' }
     }
 }
 rootProject.name = "XposedDigest"
