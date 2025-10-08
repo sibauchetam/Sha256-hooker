@@ -65,10 +65,10 @@ android/app/src/main/res/mipmap-xxxhdpi/bootsplash.png
 
 ### Java ###
 # Compiled class file
-*.class
+# *.class # Covered by global rule
 
 # Log file
-*.log
+# *.log # Covered by global rule
 
 # BlueJ files
 *.ctxt
@@ -77,8 +77,6 @@ android/app/src/main/res/mipmap-xxxhdpi/bootsplash.png
 .mtj.tmp/
 
 # Package Files #
-# Exclude the Gradle Wrapper jar
-!gradle/wrapper/gradle-wrapper.jar
 *.jar
 *.war
 *.ear
@@ -90,46 +88,13 @@ android/app/src/main/res/mipmap-xxxhdpi/bootsplash.png
 hs_err_pid*
 
 ### Kotlin ###
-# Compiled class files
-*.class
-
-# Eclipse Project files
-.project
-.settings
-
-# IntelliJ IDEA
-*.iml
-*.ipr
-*.iws
-.idea/
-.idea/misc.xml
-.idea/modules.xml
-.idea/vcs.xml
-.idea/workspace.xml
-! .idea/artifacts
-
 # Folders
-out/
-
-# Gradle
-.gradle
-build/
-!build/reports/
-!build/test-results/
-
-# Navigation files
-.navigation/
+# out/ # Covered by global rule
 
 # STS
 .spring-boot-devtools.properties
 
-# See https://github.com/JetBrains/kotlin-examples/blob/master/.gitignore
-# compiled output
-/build
-*.jar
-*.war
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
+# IMPORTANT: Exclude the Gradle Wrapper jar from being ignored
+!gradle/wrapper/gradle-wrapper.jar
 
 # End of https://www.toptal.com/developers/gitignore/api/android,java,kotlin
