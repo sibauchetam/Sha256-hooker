@@ -77,6 +77,8 @@ android/app/src/main/res/mipmap-xxxhdpi/bootsplash.png
 .mtj.tmp/
 
 # Package Files #
+# Exclude the Gradle Wrapper jar
+!gradle/wrapper/gradle-wrapper.jar
 *.jar
 *.war
 *.ear
