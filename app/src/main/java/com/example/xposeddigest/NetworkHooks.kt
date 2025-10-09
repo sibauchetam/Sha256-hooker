@@ -30,32 +30,30 @@ object NetworkHooks {
     private fun hookOkHttp(classLoader: ClassLoader) {
         val requestBuilderClass = XposedHelpers.findClassIfExists("okhttp3.Request\$Builder", classLoader) ?: return
 
-        // Hook: public Request build()
-        XposedHelpers.findAndHookMethod(requestBuilderClass, "build", object : XC_MethodHook() {
+        val headerHook = object : XC_MethodHook() {
             override fun beforeHookedMethod(param: MethodHookParam) {
-                val builder = param.thisObject
-                // Use reflection to get access to the private list of headers
-                val headersField = XposedHelpers.findField(requestBuilderClass, "headers")
-                val headersBuilder = headersField.get(builder)
-                val headersList = XposedHelpers.getObjectField(headersBuilder, "namesAndValues") as List<String>
+                val name = param.args[0] as? String
+                if (name.equals(DIGEST_HEADER, ignoreCase = true)) {
+                    val value = param.args[1] as? String
+                    val builder = param.thisObject
+                    // The 'url' field in the builder is an HttpUrl object. toString() gives the full URL.
+                    val url = XposedHelpers.getObjectField(builder, "url")
+                    val method = XposedHelpers.getObjectField(builder, "method") as String
 
-                for (i in headersList.indices step 2) {
-                    val name = headersList[i]
-                    if (name.equals(DIGEST_HEADER, ignoreCase = true)) {
-                        val value = headersList[i + 1]
-                        val url = XposedHelpers.getObjectField(builder, "url") as? URL
-                        val method = XposedHelpers.getObjectField(builder, "method") as String
-
-                        XposedBridge.log("XposedDigest: OkHttp: Found '$DIGEST_HEADER' header")
-                        XposedBridge.log("  URL: $url")
-                        XposedBridge.log("  Method: $method")
-                        XposedBridge.log("  Header: $name: $value")
-                        XposedBridge.log("  Stack Trace:\n${Log.getStackTraceString(Throwable())}")
-                        break
-                    }
+                    XposedBridge.log("XposedDigest: OkHttp: Intercepted '$DIGEST_HEADER' header addition")
+                    XposedBridge.log("  URL: $url")
+                    XposedBridge.log("  Method: $method")
+                    XposedBridge.log("  Header: $name: $value")
+                    XposedBridge.log("  Stack Trace:\n${Log.getStackTraceString(Throwable())}")
                 }
             }
-        })
+        }
+
+        // Hook: public Builder addHeader(String name, String value)
+        XposedHelpers.findAndHookMethod(requestBuilderClass, "addHeader", String::class.java, String::class.java, headerHook)
+
+        // Hook: public Builder header(String name, String value)
+        XposedHelpers.findAndHookMethod(requestBuilderClass, "header", String::class.java, String::class.java, headerHook)
     }
 
     private fun hookHttpURLConnection(classLoader: ClassLoader) {
