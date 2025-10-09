@@ -1,5 +1,6 @@
 package com.example.xposeddigest
 
+import android.util.Log
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
@@ -26,6 +27,16 @@ object CryptoHooks {
             hookMac(classLoader)
         }.onFailure {
             XposedBridge.log("XposedDigest: Failed to hook Mac: ${it.message}")
+        }
+        runCatching {
+            hookRuntimeExec(classLoader)
+        }.onFailure {
+            XposedBridge.log("XposedDigest: Failed to hook Runtime.exec: ${it.message}")
+        }
+        runCatching {
+            hookSystemLoad(classLoader)
+        }.onFailure {
+            XposedBridge.log("XposedDigest: Failed to hook System.load/loadLibrary: ${it.message}")
         }
     }
 
@@ -167,6 +178,55 @@ object CryptoHooks {
                 macBuffers.remove(param.thisObject as Mac)
             }
         })
+    }
+
+    private fun hookRuntimeExec(classLoader: ClassLoader) {
+        val runtimeClass = XposedHelpers.findClass("java.lang.Runtime", classLoader)
+
+        val execHook = object : XC_MethodHook() {
+            override fun beforeHookedMethod(param: MethodHookParam) {
+                val command = when (val arg = param.args[0]) {
+                    is String -> arg
+                    is Array<*> -> (arg as Array<String>).joinToString(" ")
+                    else -> "[Unknown Type]"
+                }
+                XposedBridge.log("XposedDigest: Runtime.exec CALLED")
+                XposedBridge.log("  Command: $command")
+                XposedBridge.log("  Stack Trace:\n${Log.getStackTraceString(Throwable())}")
+            }
+        }
+
+        // Hook common overloads of exec, wrapped in runCatching to avoid crashes
+        runCatching { XposedHelpers.findAndHookMethod(runtimeClass, "exec", String::class.java, execHook) }
+        runCatching { XposedHelpers.findAndHookMethod(runtimeClass, "exec", Array<String>::class.java, execHook) }
+    }
+
+    private fun hookSystemLoad(classLoader: ClassLoader) {
+        val systemClass = XposedHelpers.findClass("java.lang.System", classLoader)
+
+        // Hook for: public static void load(String filename)
+        runCatching {
+            XposedHelpers.findAndHookMethod(systemClass, "load", String::class.java, object : XC_MethodHook() {
+                override fun beforeHookedMethod(param: MethodHookParam) {
+                    val filename = param.args[0] as String
+                    XposedBridge.log("XposedDigest: System.load(String) CALLED")
+                    XposedBridge.log("  File: $filename")
+                    XposedBridge.log("  Stack Trace:\n${Log.getStackTraceString(Throwable())}")
+                }
+            })
+        }
+
+        // Hook for: public static void loadLibrary(String libname)
+        runCatching {
+            XposedHelpers.findAndHookMethod(systemClass, "loadLibrary", String::class.java, object : XC_MethodHook() {
+                override fun beforeHookedMethod(param: MethodHookParam) {
+                    val libname = param.args[0] as String
+                    XposedBridge.log("XposedDigest: System.loadLibrary(String) CALLED")
+                    XposedBridge.log("  Library: $libname")
+                    XposedBridge.log("  Stack Trace:\n${Log.getStackTraceString(Throwable())}")
+                }
+            })
+        }
     }
 
     private fun bytesToHex(bytes: ByteArray): String {
